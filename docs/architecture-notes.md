@@ -104,3 +104,17 @@ Important security decisions:
 - load balancers distribute traffic
 - ASGs maintain healthy capacity
 - health checks drive recovery behavior
+
+## Public Entry Layer / Private Compute Layer
+
+The Application Load Balancer remains in public subnets because it receives traffic from the internet.
+
+The EC2 instances now run in private subnets. They do not have public IPv4 addresses and cannot be reached directly from the internet.
+
+Traffic flow:
+
+Internet → Internet-facing ALB → Private EC2 instances
+
+Outbound-only internet access from private instances is provided through a NAT Gateway.
+
+This improves security because the only public entry point is the ALB, while compute resources remain isolated in private subnets.
