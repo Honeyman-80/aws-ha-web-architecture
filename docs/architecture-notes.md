@@ -1,1 +1,106 @@
+# Architecture Notes
 
+# High-Level Traffic Flow
+
+Browser  
+→ Application Load Balancer (ALB)  
+→ Target Group  
+→ EC2 instances  
+→ Web server response
+
+The ALB distributes incoming traffic across multiple EC2 instances running in different Availability Zones.
+
+This improves:
+- availability
+- fault tolerance
+- traffic distribution
+
+---
+
+# Auto Scaling Group (ASG)
+
+The Auto Scaling Group maintains the desired number of EC2 instances.
+
+Configuration used:
+
+- Desired capacity: 2
+- Minimum capacity: 2
+- Maximum capacity: 4
+
+Current behavior:
+- maintain 2 healthy instances
+- automatically replace failed instances
+
+---
+
+# Launch Template
+
+The Launch Template acts as a reusable server blueprint.
+
+It defines:
+- Amazon Linux 2023 AMI
+- instance type
+- security group
+- startup automation
+- user data script
+
+This allows infrastructure to become reproducible instead of manually configured.
+
+---
+
+# User Data Automation
+
+User data automatically:
+- installs Apache
+- starts the web server
+- generates a webpage during boot
+
+This demonstrates infrastructure bootstrapping.
+
+---
+
+# Multi-AZ Design
+
+Instances were deployed across multiple Availability Zones using multiple subnets in the default VPC.
+
+This protects against:
+- single instance failure
+- single AZ failure
+
+---
+
+# Failure Recovery Test
+
+An EC2 instance was intentionally terminated.
+
+Observed behavior:
+
+1. ALB stopped routing traffic to unhealthy instance
+2. ASG detected reduced capacity
+3. ASG launched replacement instance
+4. New instance passed health checks
+5. ALB resumed routing traffic
+
+This demonstrated a self-healing infrastructure pattern.
+
+---
+
+# Security Concepts
+
+Security Groups acted as virtual firewalls.
+
+Important security decisions:
+- allowed HTTP traffic only
+- avoided exposing SSH publicly
+- applied least privilege networking concepts
+
+---
+
+# Important Mental Models Learned
+
+- servers are disposable
+- architecture is the system
+- infrastructure should be reproducible
+- load balancers distribute traffic
+- ASGs maintain healthy capacity
+- health checks drive recovery behavior
