@@ -27,3 +27,16 @@ Internet → Public ALB → Private EC2 instances
 Security pattern:
 
 Internet → ALB → Private EC2
+
+## Added Private Subnet Network ACL
+
+- Created custom private subnet NACL
+- Associated it with both private web subnets
+- Added inbound HTTP rule for ALB-to-EC2 traffic
+- Added outbound ephemeral port rule for EC2-to-ALB response traffic
+- Verified the website still works through the ALB
+
+Key lesson:
+
+Security Groups are stateful.
+Network ACLs are stateless.
