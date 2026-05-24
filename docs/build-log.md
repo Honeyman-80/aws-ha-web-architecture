@@ -14,3 +14,16 @@
 Architecture pattern:
 
 Internet → Public ALB → Private EC2 instances
+
+## Separated ALB and EC2 Security Groups
+
+- Created dedicated ALB security group
+- Attached ALB security group to the Application Load Balancer
+- Updated EC2 security group rules
+- Removed direct HTTP access from the internet to EC2 instances
+- Allowed HTTP traffic only from the ALB security group
+- Verified the application remained accessible through the ALB
+
+Security pattern:
+
+Internet → ALB → Private EC2
