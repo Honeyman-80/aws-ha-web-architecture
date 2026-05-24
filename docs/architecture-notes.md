@@ -150,3 +150,17 @@ This allows private instances to be accessed through Session Manager without:
 Operational pattern:
 
 Admin → AWS Systems Manager Session Manager → Private EC2
+
+## Private Subnet Network ACL
+
+A custom Network ACL was added to the private subnets.
+
+The private NACL allows:
+- inbound HTTP 80 from the VPC CIDR
+- outbound ephemeral response ports 1024-65535 back to the VPC CIDR
+
+This demonstrates that Network ACLs are stateless, so both request and response traffic must be explicitly allowed.
+
+Traffic path:
+
+Internet → ALB → Private Subnet NACL → EC2 Security Group → EC2
