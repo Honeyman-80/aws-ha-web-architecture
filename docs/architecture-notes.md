@@ -118,3 +118,20 @@ Internet → Internet-facing ALB → Private EC2 instances
 Outbound-only internet access from private instances is provided through a NAT Gateway.
 
 This improves security because the only public entry point is the ALB, while compute resources remain isolated in private subnets.
+
+## Security Group Separation Pattern
+
+The architecture was updated to separate ALB and EC2 security responsibilities.
+
+ALB security group:
+- Allows HTTP 80 from the internet (0.0.0.0/0)
+
+EC2 instance security group:
+- Allows HTTP 80 only from the ALB security group
+- Does not allow direct HTTP access from the internet
+
+Traffic flow:
+
+Internet → ALB Security Group → ALB → EC2 Security Group → EC2
+
+This reduces attack surface and ensures backend instances only accept traffic from the load balancer.
