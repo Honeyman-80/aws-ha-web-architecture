@@ -135,3 +135,18 @@ Traffic flow:
 Internet → ALB Security Group → ALB → EC2 Security Group → EC2
 
 This reduces attack surface and ensures backend instances only accept traffic from the load balancer.
+
+## Systems Manager Access
+
+Session Manager was tested for private EC2 operational access.
+
+The account has Systems Manager Default Host Management Configuration enabled, which allows EC2 instances to be managed by Systems Manager without manually attaching an SSM instance profile role to each instance.
+
+This allows private instances to be accessed through Session Manager without:
+- public IP addresses
+- inbound SSH access
+- bastion hosts
+
+Operational pattern:
+
+Admin → AWS Systems Manager Session Manager → Private EC2
