@@ -40,3 +40,18 @@ Key lesson:
 
 Security Groups are stateful.
 Network ACLs are stateless.
+
+## Added Private RDS Database Tier
+
+- Created dedicated DB subnets across multiple AZs
+- Created DB route table
+- Created RDS DB subnet group
+- Created dedicated RDS security group
+- Deployed private MySQL RDS instance
+- Disabled public database access
+- Connected from private EC2 instance to private RDS instance using Session Manager
+- Verified database connectivity and initial database creation
+
+Key lesson:
+
+Databases should remain private and only be reachable from trusted application tiers.
