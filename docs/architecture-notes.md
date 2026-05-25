@@ -164,3 +164,23 @@ This demonstrates that Network ACLs are stateless, so both request and response 
 Traffic path:
 
 Internet → ALB → Private Subnet NACL → EC2 Security Group → EC2
+
+## Private RDS Database Layer
+
+A private MySQL RDS database was added as a dedicated database tier.
+
+Architecture:
+
+Internet → ALB → Private EC2 app tier → Private RDS database tier
+
+Key design decisions:
+- RDS deployed in dedicated private DB subnets
+- Separate DB route table created
+- RDS configured with Public access = No
+- DB subnet group used to control allowed DB subnet placement
+- Dedicated RDS security group created
+- MySQL access allowed only from the EC2 application security group
+
+Session Manager was used to access a private EC2 instance and verify connectivity to the database.
+
+This demonstrates a standard 3-tier production-style architecture pattern.
