@@ -184,3 +184,25 @@ Key design decisions:
 Session Manager was used to access a private EC2 instance and verify connectivity to the database.
 
 This demonstrates a standard 3-tier production-style architecture pattern.
+
+## Operational Recovery and Cost Optimization
+
+To reduce lab costs during inactive periods:
+
+- Auto Scaling Group desired capacity was reduced to 0
+- RDS database was temporarily stopped
+- NAT Gateway and ALB were deleted and later rebuilt
+
+Recovery procedure:
+1. Start RDS database
+2. Recreate NAT Gateway in public subnet
+3. Update private route table default route to NAT Gateway
+4. Recreate internet-facing ALB in public subnets
+5. Attach existing target group
+6. Restore ASG desired capacity
+
+This demonstrated:
+- infrastructure lifecycle management
+- operational recovery procedures
+- dependency troubleshooting
+- cost optimization tradeoffs
