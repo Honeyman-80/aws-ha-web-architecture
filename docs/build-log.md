@@ -55,3 +55,35 @@ Network ACLs are stateless.
 Key lesson:
 
 Databases should remain private and only be reachable from trusted application tiers.
+
+## Converted Static Web Tier into Dynamic Flask Application
+
+- Updated Launch Template user data
+- Replaced static Apache HTML page with Python Flask application
+- Added dynamic RDS-backed visit counter
+- Verified application inserts and retrieves data from MySQL RDS
+- Verified multiple EC2 instances share centralized database state
+- Verified ALB distributes traffic across instances
+
+Architecture pattern:
+
+Browser → ALB → Flask EC2 instances → RDS MySQL
+
+Key lesson:
+
+Application instances are ephemeral.
+Persistent shared state should live in managed database services like RDS.
+
+## Added Operational Health Checks and Observability
+
+- Added dedicated `/health` endpoint for ALB health checks
+- Updated target group health check path from `/` to `/health`
+- Prevented ALB health checks from modifying application data
+- Created EC2 IAM role for observability
+- Installed CloudWatch Agent through Launch Template user data
+- Added memory and disk metrics to CloudWatch
+- Verified CloudWatch Agent metrics from both EC2 instances
+
+Key lesson:
+
+Operational endpoints should be separated from business application logic.
