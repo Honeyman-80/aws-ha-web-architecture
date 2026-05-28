@@ -1,95 +1,138 @@
-# Operations Notes
+## Operational Recovery, Observability, and Health Check Improvements
 
-## Dynamic Scaling
+The architecture was tested using a full operational shutdown and recovery workflow to better understand infrastructure dependencies, cost optimization, and recovery procedures.
 
-A target tracking scaling policy was added to the Auto Scaling Group.
+### Cost Optimization Shutdown Procedure
 
-Policy behavior:
+To reduce AWS lab costs during inactive periods:
 
-- Metric: CPU utilization
-- Target value: 70%
-- Minimum capacity: 2
-- Desired capacity: 2
-- Maximum capacity: 4
+* Auto Scaling Group desired capacity was reduced to 0
+* EC2 instances were terminated automatically by the ASG
+* The RDS database was temporarily stopped
+* The Application Load Balancer (ALB) was deleted
+* NAT Gateways were deleted
 
-The system was tested by generating CPU load on an EC2 instance.
+Infrastructure configuration components were preserved, including:
 
-Observed behavior:
+* VPC
+* subnets
+* route tables
+* security groups
+* Network ACLs
+* Launch Templates
+* Auto Scaling Group
+* Target Groups
+* IAM roles
+* Systems Manager Parameter Store configuration
 
-1. CPU increased on one instance
-2. CloudWatch detected high CPU
-3. AWS-managed target tracking alarm entered ALARM state
-4. Auto Scaling Group increased desired capacity from 2 to 3
-5. A new EC2 instance launched
-6. The new instance registered with the target group
+### Recovery Procedure
 
-## Scale In
+The environment was later rebuilt using the following recovery process:
 
-After stopping CPU stress, the Auto Scaling Group eventually scaled back in.
+1. Start the RDS database
+2. Recreate a public NAT Gateway
+3. Update private route table default route:
+
+   * `0.0.0.0/0 → NAT Gateway`
+4. Recreate the internet-facing ALB in public subnets
+5. Reattach the existing target group
+6. Restore Auto Scaling Group desired capacity
+
+This demonstrated that cloud infrastructure can often be reconstructed from configuration and architecture definitions rather than relying on individual servers.
+
+### Troubleshooting and Dependency Analysis
+
+Several operational troubleshooting scenarios were encountered during recovery.
+
+Observed issues included:
+
+* unhealthy ALB targets
+* request timeouts
+* broken outbound connectivity
+* incorrect launch template versions
+* missing application behavior
+* HTTPS vs HTTP listener mismatches
+
+Troubleshooting followed a layered approach:
+
+Browser
+→ ALB listener
+→ Target Group health
+→ EC2 application
+→ RDS connectivity
+→ NAT routing
+→ Security Groups
+→ Network ACLs
 
 Important lesson:
 
-- scale out is usually faster
-- scale in is usually more conservative
-- AWS avoids rapid scale-in/scale-out flapping
+Troubleshooting distributed systems is often about identifying which layer in the request path is failing.
 
-## CloudWatch Alarm + SNS Notification
+### Flask Application Migration
 
-A human-facing CloudWatch alarm was created for high CPU.
+The web tier was upgraded from a static Apache page to a dynamic Python Flask application.
 
-Alarm flow:
+The application now:
 
-CloudWatch metric  
-→ CloudWatch alarm  
-→ SNS topic  
-→ email/SMS notification
+* runs automatically through EC2 user data
+* connects to MySQL RDS
+* inserts visit records into the database
+* retrieves shared visit counts
+* displays instance identity information
 
-This demonstrated the difference between:
+Architecture flow:
 
-- automation alarms used by scaling policies
-- human alerting alarms used for operational awareness
+Browser
+→ ALB
+→ Flask EC2 instances
+→ RDS MySQL database
 
-## Target Tracking Observation
+This demonstrated that application instances are ephemeral while persistent shared state should live in managed database services.
 
-During testing, the AWS-managed target tracking alarm showed behavior that was not immediately obvious from a simple manual CPU average.
+### Dedicated Health Check Endpoint
+
+Originally, the ALB health check path used `/`.
+
+This unintentionally caused ALB health checks to:
+
+* execute application logic
+* write records into the database
+* increase the visit counter
+
+A dedicated operational endpoint was added:
+
+* `/health`
+
+The `/health` endpoint only returns:
+
+* HTTP 200 OK
+
+Target group health checks were updated to use `/health` instead of `/`.
 
 Important lesson:
 
-- always inspect actual CloudWatch alarms
-- do not assume simplified mental models explain all managed service behavior
-- validate scaling behavior using activity history, alarm graphs, and metrics
+Operational health checks should remain lightweight and separate from business application behavior.
 
-## Networking Notes
+### CloudWatch Agent and Observability
 
-The default VPC contained multiple subnets across multiple Availability Zones.
+An EC2 IAM role was created to support observability and Systems Manager integration.
 
-The default route table included:
+Attached policies included:
 
-- 172.31.0.0/16 → local
-- 0.0.0.0/0 → Internet Gateway
+* AmazonSSMManagedInstanceCore
+* CloudWatchAgentServerPolicy
 
-Important networking lessons:
+CloudWatch Agent was installed automatically through Launch Template user data.
 
-- VPCs are region-wide
-- subnets are AZ-specific
-- public subnet behavior depends on route tables
-- Internet Gateways provide internet connectivity
-- Security Groups control allowed traffic
-- Route Tables control where traffic goes
+The agent configuration was stored centrally in Systems Manager Parameter Store.
 
-## Security Notes
+Additional metrics collected:
 
-The current architecture uses public EC2 instances for learning.
+* memory utilization
+* disk utilization
 
-This is acceptable for a lab, but a more secure architecture would use:
+Metrics were successfully verified in CloudWatch under the `CWAgent` namespace.
 
-Internet  
-→ public ALB  
-→ private EC2 instances  
-→ private database
+Important lesson:
 
-Future improvement:
-
-- remove public SSH
-- use SSM Session Manager
-- move EC2 instances into private subnets
+Default EC2 metrics provide limited visibility. Production systems often require additional observability agents and centralized operational telemetry.
