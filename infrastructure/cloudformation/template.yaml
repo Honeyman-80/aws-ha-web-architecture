@@ -203,6 +203,19 @@ Resources:
       BackupRetentionPeriod: 1
       DeletionProtection: false
 
+  WebAcl:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      Name: !Sub '${EnvironmentName}-ha-web-acl'
+      Scope: REGIONAL
+      DefaultAction:
+        Allow: {}
+      VisibilityConfig:
+        CloudWatchMetricsEnabled: true
+        MetricName: !Sub '${EnvironmentName}-ha-web-acl'
+        SampledRequestsEnabled: true
+      Rules: []
+
 Outputs:
   LoadBalancerDNSName:
     Description: DNS name of the Application Load Balancer
