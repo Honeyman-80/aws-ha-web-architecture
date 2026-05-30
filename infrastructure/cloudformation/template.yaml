@@ -142,4 +142,22 @@ Resources:
             echo "Hello from CloudFormation EC2" > /var/www/html/index.html
             echo "OK" > /var/www/html/health
 
+  WebAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Sub '${EnvironmentName}-ha-web-asg'
+      VPCZoneIdentifier: !Ref PrivateSubnetIds
+      MinSize: '2'
+      MaxSize: '4'
+      DesiredCapacity: '2'
+      TargetGroupARNs:
+        - !Ref WebTargetGroup
+      LaunchTemplate:
+        LaunchTemplateId: !Ref WebLaunchTemplate
+        Version: !GetAtt WebLaunchTemplate.LatestVersionNumber
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-ha-web-instance'
+          PropagateAtLaunch: true
+
 
