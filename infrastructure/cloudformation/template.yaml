@@ -37,6 +37,21 @@ Parameters:
     Default: t3.micro
     Description: EC2 instance type for web servers
 
+  DbName:
+    Type: String
+    Default: hawebdb
+    Description: MySQL database name
+
+  DbUsername:
+    Type: String
+    Default: admin
+    Description: MySQL admin username
+
+  DbPassword:
+    Type: String
+    NoEcho: true
+    Description: MySQL admin password
+
 Resources:
   AlbSecurityGroup:
     Type: AWS::EC2::SecurityGroup
