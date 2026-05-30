@@ -23,6 +23,20 @@ Parameters:
     Type: List<AWS::EC2::Subnet::Id>
     Description: Existing private DB subnet IDs for RDS
 
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Existing EC2 key pair name for SSH access
+
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    Description: Latest Amazon Linux 2023 AMI ID
+
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    Description: EC2 instance type for web servers
+
 Resources:
   AlbSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -106,16 +120,26 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref WebTargetGroup
 
-  KeyName:
-    Type: AWS::EC2::KeyPair::KeyName
-    Description: Existing EC2 key pair name for SSH access
+  WebLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub '${EnvironmentName}-ha-web-lt'
+      LaunchTemplateData:
+        ImageId: !Ref LatestAmiId
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref KeyName
+        SecurityGroupIds:
+          - !Ref Ec2SecurityGroup
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            dnf update -y
+            dnf install -y httpd
 
-  LatestAmiId:
-    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
-    Description: Latest Amazon Linux 2023 AMI ID
+            systemctl enable httpd
+            systemctl start httpd
 
-  InstanceType:
-    Type: String
-    Default: t3.micro
-    Description: EC2 instance type for web servers
+            echo "Hello from CloudFormation EC2" > /var/www/html/index.html
+            echo "OK" > /var/www/html/health
+
+
