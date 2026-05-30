@@ -95,3 +95,13 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub '${EnvironmentName}-ha-web-tg'
+
+  AlbListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref WebTargetGroup
