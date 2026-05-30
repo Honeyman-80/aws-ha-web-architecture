@@ -1,4 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: High Availability Web Application
 
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: dev
+    Description: Environment name used to label resources
+
 Resources:
