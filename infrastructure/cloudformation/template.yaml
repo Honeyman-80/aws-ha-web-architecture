@@ -216,4 +216,8 @@ Outputs:
     Description: Name of the Auto Scaling Group
     Value: !Ref WebAutoScalingGroup
 
+  DatabaseEndpoint:
+    Description: RDS database endpoint address
+    Value: !GetAtt MySqlDatabase.Endpoint.Address
+
 
