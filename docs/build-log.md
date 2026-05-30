@@ -87,3 +87,94 @@ Persistent shared state should live in managed database services like RDS.
 Key lesson:
 
 Operational endpoints should be separated from business application logic.
+
+## Added AWS WAF Protection Layer
+
+A Web ACL was deployed and attached to the Application Load Balancer.
+
+Architecture update:
+
+Internet → WAF → ALB → Private EC2 → Private RDS
+
+### IP Allowlist
+
+Created an IP-based allow rule for the administrator IP address.
+
+Purpose:
+
+* Prevent accidental lockout during testing
+* Allow administrative access regardless of other WAF rules
+
+Key lesson:
+
+* WAF evaluates rules in priority order
+* Allow rules stop further evaluation
+
+### Geographic Restriction
+
+Created a geo-based rule that blocks requests originating outside:
+
+* Canada
+* United States
+
+Implementation:
+
+* Block action
+* NOT statement enabled
+* Countries selected: Canada and United States
+
+Logic:
+
+If request does NOT originate from Canada or the United States → Block
+
+### Rate Limiting
+
+Created a rate-based rule:
+
+* Limit: 20 requests
+* Evaluation window: 5 minutes
+* Action: Block
+
+Testing:
+
+* Repeated page refreshes triggered WAF protection
+* Browser received 403 Forbidden response
+* WAF metrics showed blocked requests
+
+Results:
+
+* Total requests: 30
+* Allowed requests: 27
+* Blocked requests: 3
+
+### SQL Injection Protection
+
+Added AWS Managed Rules SQLi Rule Set.
+
+Testing:
+
+* Submitted SQL injection test pattern in URL query string
+* WAF detected request and returned 403 Forbidden
+
+Key lesson:
+
+* WAF blocks malicious requests before they reach the application
+
+### Health Endpoint Protection
+
+Created custom URI path rule:
+
+* URI path = /health
+* Action = Block
+
+Rule ordering allows administrator access while preventing public access to operational endpoints.
+
+### Key Lessons
+
+* WAF protects Layer 7 HTTP/HTTPS traffic
+* Security Groups protect Layer 3/4 network traffic
+* Rule order is critical
+* Allow rules stop evaluation
+* Managed rule groups provide protection against common attack patterns
+* Rate limiting helps mitigate abusive traffic
+* WAF can block malicious requests before they reach application servers
