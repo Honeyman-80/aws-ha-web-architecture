@@ -114,3 +114,8 @@ Resources:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
     Description: Latest Amazon Linux 2023 AMI ID
+
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    Description: EC2 instance type for web servers
