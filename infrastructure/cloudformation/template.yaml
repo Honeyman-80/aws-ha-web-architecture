@@ -246,6 +246,15 @@ Resources:
             MetricName: rate-limit-test
             SampledRequestsEnabled: true
 
+    DaveIpSet:
+      Type: AWS::WAFv2::IPSet
+      Properties:
+        Name: !Sub '${EnvironmentName}-dave-ip-set'
+        Scope: REGIONAL
+        IPAddressVersion: IPV4
+        Addresses:
+          - 70.75.160.69/32
+
   WebAclAssociation:
     Type: AWS::WAFv2::WebACLAssociation
     Properties:
