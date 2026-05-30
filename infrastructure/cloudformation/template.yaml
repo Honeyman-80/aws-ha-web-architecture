@@ -216,6 +216,12 @@ Resources:
         SampledRequestsEnabled: true
       Rules: []
 
+  WebAclAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    Properties:
+      ResourceArn: !Ref ApplicationLoadBalancer
+      WebACLArn: !GetAtt WebAcl.Arn
+
 Outputs:
   LoadBalancerDNSName:
     Description: DNS name of the Application Load Balancer
