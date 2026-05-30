@@ -215,8 +215,26 @@ Resources:
         MetricName: !Sub '${EnvironmentName}-ha-web-acl'
         SampledRequestsEnabled: true
       Rules:
-        - Name: rate-limit-test
+        - Name: block-public-health
           Priority: 0
+          Action:
+            Block: {}
+          Statement:
+            ByteMatchStatement:
+              SearchString: /health
+              FieldToMatch:
+                UriPath: {}
+              TextTransformations:
+                - Priority: 0
+                  Type: NONE
+              PositionalConstraint: EXACTLY
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: block-public-health
+            SampledRequestsEnabled: true
+
+        - Name: rate-limit-test
+          Priority: 1
           Action:
             Block: {}
           Statement:
