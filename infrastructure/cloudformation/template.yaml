@@ -239,4 +239,8 @@ Outputs:
     Description: RDS database endpoint address
     Value: !GetAtt MySqlDatabase.Endpoint.Address
 
+  WebAclArn:
+    Description: ARN of the WAF Web ACL
+    Value: !GetAtt WebAcl.Arn
+
 
