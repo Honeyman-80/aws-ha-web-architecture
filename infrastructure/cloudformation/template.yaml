@@ -160,4 +160,26 @@ Resources:
           Value: !Sub '${EnvironmentName}-ha-web-instance'
           PropagateAtLaunch: true
 
+  DbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Private subnet group for RDS
+      SubnetIds: !Ref DbSubnetIds
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-db-subnet-group'
+
+Outputs:
+  LoadBalancerDNSName:
+    Description: DNS name of the Application Load Balancer
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+
+  WebTargetGroupArn:
+    Description: ARN of the web target group
+    Value: !Ref WebTargetGroup
+
+  AutoScalingGroupName:
+    Description: Name of the Auto Scaling Group
+    Value: !Ref WebAutoScalingGroup
+
 
