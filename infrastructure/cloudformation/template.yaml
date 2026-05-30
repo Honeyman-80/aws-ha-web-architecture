@@ -105,3 +105,7 @@ Resources:
       DefaultActions:
         - Type: forward
           TargetGroupArn: !Ref WebTargetGroup
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Existing EC2 key pair name for SSH access
