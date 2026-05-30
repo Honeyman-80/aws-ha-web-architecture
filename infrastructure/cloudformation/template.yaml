@@ -258,7 +258,7 @@ Resources:
             MetricName: rate-limit-test
             SampledRequestsEnabled: true
 
-    DaveIpSet:
+  DaveIpSet:
       Type: AWS::WAFv2::IPSet
       Properties:
         Name: !Sub '${EnvironmentName}-dave-ip-set'
