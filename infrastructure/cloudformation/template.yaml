@@ -215,8 +215,20 @@ Resources:
         MetricName: !Sub '${EnvironmentName}-ha-web-acl'
         SampledRequestsEnabled: true
       Rules:
-        - Name: block-public-health
+        - Name: allow-dave-ip
           Priority: 0
+          Action:
+            Allow: {}
+          Statement:
+            IPSetReferenceStatement:
+              Arn: !GetAtt DaveIpSet.Arn
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: allow-dave-ip
+            SampledRequestsEnabled: true
+
+        - Name: block-public-health
+          Priority: 1
           Action:
             Block: {}
           Statement:
@@ -234,7 +246,7 @@ Resources:
             SampledRequestsEnabled: true
 
         - Name: rate-limit-test
-          Priority: 1
+          Priority: 2
           Action:
             Block: {}
           Statement:
