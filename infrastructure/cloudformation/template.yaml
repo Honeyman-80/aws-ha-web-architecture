@@ -214,7 +214,19 @@ Resources:
         CloudWatchMetricsEnabled: true
         MetricName: !Sub '${EnvironmentName}-ha-web-acl'
         SampledRequestsEnabled: true
-      Rules: []
+      Rules:
+        - Name: rate-limit-test
+          Priority: 0
+          Action:
+            Block: {}
+          Statement:
+            RateBasedStatement:
+              Limit: 20
+              AggregateKeyType: IP
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: rate-limit-test
+            SampledRequestsEnabled: true
 
   WebAclAssociation:
     Type: AWS::WAFv2::WebACLAssociation
