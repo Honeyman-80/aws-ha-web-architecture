@@ -67,6 +67,11 @@ Parameters:
     NoEcho: true
     Description: MySQL admin password. Enter this during stack creation.
 
+  AlarmSnsTopicArn:
+    Type: String
+    Default: arn:aws:sns:us-east-1:654375431894:dlq-alerts-clean
+    Description: Existing SNS topic ARN for CloudWatch alarm notifications
+
 Resources:
   AlbSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -455,6 +460,26 @@ Resources:
     Properties:
       ResourceArn: !Ref ApplicationLoadBalancer
       WebACLArn: !GetAtt WebAcl.Arn
+
+  HealthyHostCountAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${EnvironmentName}-healthy-host-count-low'
+      AlarmDescription: Alarm when fewer than 2 healthy targets are available behind the ALB
+      Namespace: AWS/ApplicationELB
+      MetricName: HealthyHostCount
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !GetAtt ApplicationLoadBalancer.LoadBalancerFullName
+        - Name: TargetGroup
+          Value: !GetAtt WebTargetGroup.TargetGroupFullName
+      Statistic: Minimum
+      Period: 60
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 2
+      Threshold: 2
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: notBreaching
 
 Outputs:
   LoadBalancerDNSName:
