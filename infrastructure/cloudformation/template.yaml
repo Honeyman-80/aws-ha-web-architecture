@@ -187,14 +187,128 @@ Resources:
         UserData:
           Fn::Base64: !Sub |
             #!/bin/bash
+            set -eux
+
             dnf update -y
-            dnf install -y httpd
+            dnf install -y python3 python3-pip
 
-            systemctl enable httpd
-            systemctl start httpd
+            mkdir -p /opt/ha-web-app
 
-            echo "Hello from CloudFormation EC2" > /var/www/html/index.html
-            echo "OK" > /var/www/html/health
+            cat > /opt/ha-web-app/requirements.txt << 'EOF'
+            flask
+            pymysql
+            gunicorn
+            EOF
+
+            pip3 install -r /opt/ha-web-app/requirements.txt
+
+            cat > /opt/ha-web-app/app.py << 'EOF'
+            import os
+            import socket
+            from datetime import datetime
+
+            import pymysql
+            from flask import Flask
+
+            app = Flask(__name__)
+
+            DB_HOST = os.environ.get("DB_HOST")
+            DB_NAME = os.environ.get("DB_NAME")
+            DB_USER = os.environ.get("DB_USER")
+            DB_PASSWORD = os.environ.get("DB_PASSWORD")
+
+            def get_connection():
+                return pymysql.connect(
+                    host=DB_HOST,
+                    user=DB_USER,
+                    password=DB_PASSWORD,
+                    database=DB_NAME,
+                    connect_timeout=5,
+                    cursorclass=pymysql.cursors.DictCursor,
+                    autocommit=True,
+                )
+
+            def init_db():
+                with get_connection() as conn:
+                    with conn.cursor() as cursor:
+                        cursor.execute(
+                            """
+                            CREATE TABLE IF NOT EXISTS visits (
+                                id INT AUTO_INCREMENT PRIMARY KEY,
+                                instance_id VARCHAR(255),
+                                visited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                            """
+                        )
+
+            @app.route("/health")
+            def health():
+                return "OK", 200
+
+            @app.route("/db-test")
+            def db_test():
+                try:
+                    init_db()
+                    return "Database connection OK", 200
+                except Exception as e:
+                    return f"Database connection failed: {e}", 500
+
+            @app.route("/")
+            def index():
+                instance_name = socket.gethostname()
+                try:
+                    init_db()
+                    with get_connection() as conn:
+                        with conn.cursor() as cursor:
+                            cursor.execute(
+                                "INSERT INTO visits (instance_id) VALUES (%s)",
+                                (instance_name,),
+                            )
+                            cursor.execute("SELECT COUNT(*) AS visit_count FROM visits")
+                            result = cursor.fetchone()
+
+                    visit_count = result["visit_count"]
+                    return f"""
+                    <html>
+                      <head><title>HA Web App</title></head>
+                      <body style="font-family: Arial; padding: 40px;">
+                        <h1>Hello from Flask on private EC2</h1>
+                        <p><strong>Instance:</strong> {instance_name}</p>
+                        <p><strong>Total visits stored in RDS:</strong> {visit_count}</p>
+                        <p><strong>Time:</strong> {datetime.utcnow().isoformat()} UTC</p>
+                      </body>
+                    </html>
+                    """, 200
+                except Exception as e:
+                    return f"Application reached Flask, but database failed: {e}", 500
+
+            if __name__ == "__main__":
+                app.run(host="0.0.0.0", port=80)
+            EOF
+
+            cat > /etc/systemd/system/ha-web-flask.service << EOF
+            [Unit]
+            Description=HA Web Flask App
+            After=network-online.target
+            Wants=network-online.target
+
+            [Service]
+            Environment=DB_HOST=${MySqlDatabase.Endpoint.Address}
+            Environment=DB_NAME=${DbName}
+            Environment=DB_USER=${DbUsername}
+            Environment=DB_PASSWORD=${DbPassword}
+            WorkingDirectory=/opt/ha-web-app
+            ExecStart=/usr/local/bin/gunicorn --bind 0.0.0.0:80 app:app
+            Restart=always
+            RestartSec=5
+
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+
+            systemctl daemon-reload
+            systemctl enable ha-web-flask
+            systemctl start ha-web-flask
 
   WebAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
