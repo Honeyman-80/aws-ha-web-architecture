@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: High Availability Web Application
+Description: High Availability Web Application with ALB, ASG, RDS, WAF, and NAT Gateway
 
 Parameters:
   EnvironmentName:
@@ -9,7 +9,7 @@ Parameters:
 
   VpcId:
     Type: AWS::EC2::VPC::Id
-    Description: Existing default VPC ID
+    Description: Existing VPC ID
 
   PublicSubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
@@ -22,6 +22,18 @@ Parameters:
   DbSubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
     Description: Existing private DB subnet IDs for RDS
+
+  NatPublicSubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Public subnet where the NAT Gateway will be created
+
+  PrivateRouteTableIdAz1:
+    Type: String
+    Description: Private route table ID for the first private subnet/AZ
+
+  PrivateRouteTableIdAz2:
+    Type: String
+    Description: Private route table ID for the second private subnet/AZ
 
   KeyName:
     Type: AWS::EC2::KeyPair::KeyName
@@ -95,6 +107,39 @@ Resources:
         - Key: Name
           Value: !Sub '${EnvironmentName}-rds-sg'
 
+  NatEip:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-nat-eip'
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatEip.AllocationId
+      SubnetId: !Ref NatPublicSubnetId
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-nat-gateway'
+
+  PrivateDefaultRouteAz1:
+    Type: AWS::EC2::Route
+    DependsOn: NatGateway
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableIdAz1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  PrivateDefaultRouteAz2:
+    Type: AWS::EC2::Route
+    DependsOn: NatGateway
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableIdAz2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
   ApplicationLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -107,7 +152,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub '${EnvironmentName}-ha-web-alb'
-
 
   WebTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -159,6 +203,9 @@ Resources:
 
   WebAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn:
+      - PrivateDefaultRouteAz1
+      - PrivateDefaultRouteAz2
     Properties:
       AutoScalingGroupName: !Sub '${EnvironmentName}-ha-web-asg'
       VPCZoneIdentifier: !Ref PrivateSubnetIds
@@ -202,6 +249,15 @@ Resources:
       MultiAZ: false
       BackupRetentionPeriod: 1
       DeletionProtection: false
+
+  DaveIpSet:
+    Type: AWS::WAFv2::IPSet
+    Properties:
+      Name: !Sub '${EnvironmentName}-dave-ip-set'
+      Scope: REGIONAL
+      IPAddressVersion: IPV4
+      Addresses:
+        - 70.75.160.69/32
 
   WebAcl:
     Type: AWS::WAFv2::WebACL
@@ -287,15 +343,6 @@ Resources:
             MetricName: AWS-AWSManagedRulesSQLiRuleSet
             SampledRequestsEnabled: true
 
-  DaveIpSet:
-      Type: AWS::WAFv2::IPSet
-      Properties:
-        Name: !Sub '${EnvironmentName}-dave-ip-set'
-        Scope: REGIONAL
-        IPAddressVersion: IPV4
-        Addresses:
-          - 70.75.160.69/32
-
   WebAclAssociation:
     Type: AWS::WAFv2::WebACLAssociation
     Properties:
@@ -319,8 +366,10 @@ Outputs:
     Description: RDS database endpoint address
     Value: !GetAtt MySqlDatabase.Endpoint.Address
 
+  NatGatewayId:
+    Description: NAT Gateway ID used by private EC2 instances for outbound internet
+    Value: !Ref NatGateway
+
   WebAclArn:
     Description: ARN of the WAF Web ACL
     Value: !GetAtt WebAcl.Arn
-
-
