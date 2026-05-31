@@ -9,34 +9,37 @@ Parameters:
 
   VpcId:
     Type: AWS::EC2::VPC::Id
+    Default: vpc-00b755d6f030afea9
     Description: Existing VPC ID
 
   PublicSubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
+    Default: subnet-0a99694c43e26d072,subnet-0a51b35b6e752a510
     Description: Existing public subnet IDs for the Application Load Balancer
 
   PrivateSubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
+    Default: subnet-07d9361f29efa5ee9,subnet-0f8c9a8bac6c01862
     Description: Existing private subnet IDs for EC2 instances
 
   DbSubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
+    Default: subnet-03ae21cb6490cec43,subnet-0e270bdae0f1c2c26
     Description: Existing private DB subnet IDs for RDS
 
   NatPublicSubnetId:
     Type: AWS::EC2::Subnet::Id
+    Default: subnet-0a99694c43e26d072
     Description: Public subnet where the NAT Gateway will be created
 
-  PrivateRouteTableIdAz1:
+  PrivateRouteTableId:
     Type: String
-    Description: Private route table ID for the first private subnet/AZ
-
-  PrivateRouteTableIdAz2:
-    Type: String
-    Description: Private route table ID for the second private subnet/AZ
+    Default: rtb-05e59490f8fd9364d
+    Description: Private route table ID used by the private EC2 subnets
 
   KeyName:
     Type: AWS::EC2::KeyPair::KeyName
+    Default: DAVIDSKEYPAIR
     Description: Existing EC2 key pair name for SSH access
 
   LatestAmiId:
@@ -62,7 +65,7 @@ Parameters:
   DbPassword:
     Type: String
     NoEcho: true
-    Description: MySQL admin password
+    Description: MySQL admin password. Enter this during stack creation.
 
 Resources:
   AlbSecurityGroup:
@@ -124,19 +127,11 @@ Resources:
         - Key: Name
           Value: !Sub '${EnvironmentName}-nat-gateway'
 
-  PrivateDefaultRouteAz1:
+  PrivateDefaultRoute:
     Type: AWS::EC2::Route
     DependsOn: NatGateway
     Properties:
-      RouteTableId: !Ref PrivateRouteTableIdAz1
-      DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref NatGateway
-
-  PrivateDefaultRouteAz2:
-    Type: AWS::EC2::Route
-    DependsOn: NatGateway
-    Properties:
-      RouteTableId: !Ref PrivateRouteTableIdAz2
+      RouteTableId: !Ref PrivateRouteTableId
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId: !Ref NatGateway
 
@@ -203,9 +198,7 @@ Resources:
 
   WebAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
-    DependsOn:
-      - PrivateDefaultRouteAz1
-      - PrivateDefaultRouteAz2
+    DependsOn: PrivateDefaultRoute
     Properties:
       AutoScalingGroupName: !Sub '${EnvironmentName}-ha-web-asg'
       VPCZoneIdentifier: !Ref PrivateSubnetIds
