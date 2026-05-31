@@ -245,8 +245,24 @@ Resources:
             MetricName: block-public-health
             SampledRequestsEnabled: true
 
-        - Name: rate-limit-test
+        - Name: geo-allow-na
           Priority: 2
+          Action:
+            Block: {}
+          Statement:
+            NotStatement:
+              Statement:
+                GeoMatchStatement:
+                  CountryCodes:
+                    - CA
+                    - US
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: geo-allow-na
+            SampledRequestsEnabled: true
+
+        - Name: rate-limit-test
+          Priority: 3
           Action:
             Block: {}
           Statement:
@@ -256,6 +272,19 @@ Resources:
           VisibilityConfig:
             CloudWatchMetricsEnabled: true
             MetricName: rate-limit-test
+            SampledRequestsEnabled: true
+
+        - Name: AWS-AWSManagedRulesSQLiRuleSet
+          Priority: 4
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesSQLiRuleSet
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: AWS-AWSManagedRulesSQLiRuleSet
             SampledRequestsEnabled: true
 
   DaveIpSet:
