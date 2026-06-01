@@ -480,6 +480,10 @@ Resources:
       Threshold: 2
       ComparisonOperator: LessThanThreshold
       TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmSnsTopicArn
+      OKActions:
+        - !Ref AlarmSnsTopicArn
 
 Outputs:
   LoadBalancerDNSName:
