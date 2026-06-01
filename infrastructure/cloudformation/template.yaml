@@ -324,6 +324,8 @@ Resources:
       MinSize: '2'
       MaxSize: '4'
       DesiredCapacity: '2'
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 300
       TargetGroupARNs:
         - !Ref WebTargetGroup
       LaunchTemplate:
